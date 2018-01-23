@@ -21,6 +21,7 @@ The goals / steps of this project are the following:
 [image9]: ./media/final_image_with_boxes.png
 [video1]: ./output_videos/project_video.mp4
 
+Functions referenced in this report are contained in the [jupyter notebook](project.ipynb).
 ---
 ### Histogram of Oriented Gradients (HOG)
 
