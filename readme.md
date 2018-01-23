@@ -26,12 +26,14 @@ The goals / steps of this project are the following:
 
 #### 1. Extracting HOG and Color features from the training images.
 
-The code extracting HOG features for training images is contained in the `get_hog_features()` function. This function takes in an image, HOG parameters. It returns HOG features and optionally the hog_image. I started by running a sample `non-car` and `car` image through the function with different color space formats to determine which one returns more data.
+The code extracting HOG features from the training images is contained in the `get_hog_features()` function. This function takes in an image, HOG parameters. I started by running a sample `non-car` and `car` image through the function with different color space formats to determine which one returns more data.
 
-`non-car`
+Sample `non-car` image:
+
 ![alt text][image1]
 
-`car`
+Sample `car` image:
+
 ![alt text][image2]
 
 I implemented functions `bin_spatial()` to compute binned color features and `color_hist()` to compute color histogram features.
