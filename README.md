@@ -1,37 +1,93 @@
-# Vehicle Detection
-[![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
-
-
-In this project, your goal is to write a software pipeline to detect vehicles in a video (start with the test_video.mp4 and later implement on full project_video.mp4), but the main output or product we want you to create is a detailed writeup of the project.  Check out the [writeup template](https://github.com/udacity/CarND-Vehicle-Detection/blob/master/writeup_template.md) for this project and use it as a starting point for creating your own writeup.  
-
-Creating a great writeup:
----
-A great writeup should include the rubric points as well as your description of how you addressed each point.  You should include a detailed description of the code used in each step (with line-number references and code snippets where necessary), and links to other supporting documents or external references.  You should include images in your writeup to demonstrate how your code works with examples.  
-
-All that said, please be concise!  We're not looking for you to write a book here, just a brief description of how you passed each rubric point, and references to the relevant code :). 
-
-You can submit your writeup in markdown or use another method and submit a pdf instead.
-
-The Project
----
+**Vehicle Detection Project**
 
 The goals / steps of this project are the following:
 
-* Perform a Histogram of Oriented Gradients (HOG) feature extraction on a labeled training set of images and train a classifier Linear SVM classifier
-* Optionally, you can also apply a color transform and append binned color features, as well as histograms of color, to your HOG feature vector. 
-* Note: for those first two steps don't forget to normalize your features and randomize a selection for training and testing.
+* Perform a Histogram of Oriented Gradients (HOG) feature extraction on a labeled training set of images and train a classifier Linear SVM classifier.
+* Apply a color transform and append binned color features, as well as histograms of color, to your HOG feature vector.
+* Normalize your features and randomize a selection for training and testing.
 * Implement a sliding-window technique and use your trained classifier to search for vehicles in images.
-* Run your pipeline on a video stream (start with the test_video.mp4 and later implement on full project_video.mp4) and create a heat map of recurring detections frame by frame to reject outliers and follow detected vehicles.
+* Run the pipeline on a video stream and create a heat map of recurring detections frame by frame to reject outliers and follow detected vehicles.
 * Estimate a bounding box for vehicles detected.
 
-Here are links to the labeled data for [vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/vehicles.zip) and [non-vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/non-vehicles.zip) examples to train your classifier.  These example images come from a combination of the [GTI vehicle image database](http://www.gti.ssr.upm.es/data/Vehicle_database.html), the [KITTI vision benchmark suite](http://www.cvlibs.net/datasets/kitti/), and examples extracted from the project video itself.   You are welcome and encouraged to take advantage of the recently released [Udacity labeled dataset](https://github.com/udacity/self-driving-car/tree/master/annotations) to augment your training data.  
+[//]: # (Image References)
+[image1]: ./media/non-car_hog_sample_colorspaces.png
+[image2]: ./media/car_hog_sample_colorspaces.png
+[image3]: ./media/boxes_scale_1.png
+[image4]: ./media/boxes_scale_2.png
+[image5]: ./media/final_boxes_1.png
+[image6]: ./media/final_boxes_2.png
+[image7]: ./media/heatmap_with_boxes.png
+[image8]: ./media/label.png
+[image9]: ./media/final_image_with_boxes.png
+[video1]: ./output_videos/project_video.mp4
 
-Some example images for testing your pipeline on single frames are located in the `test_images` folder.  To help the reviewer examine your work, please save examples of the output from each stage of your pipeline in the folder called `ouput_images`, and include them in your writeup for the project by describing what each image shows.    The video called `project_video.mp4` is the video your pipeline should work well on.  
+---
+### Histogram of Oriented Gradients (HOG)
 
-**As an optional challenge** Once you have a working pipeline for vehicle detection, add in your lane-finding algorithm from the last project to do simultaneous lane-finding and vehicle detection!
+#### 1. Extracting HOG and Color features from the training images.
 
-**If you're feeling ambitious** (also totally optional though), don't stop there!  We encourage you to go out and take video of your own, and show us how you would implement this project on a new video!
+The code extracting HOG features for training images is contained in the `get_hog_features()` function. This function takes in an image, HOG parameters. It returns HOG features and optionally the hog_image. I started by running a sample `non-car` and `car` image through the function with different color space formats to determine which one returns more data.
 
-## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
+`non-car`
+![alt text][image1]
 
+`car`
+![alt text][image2]
+
+I implemented functions `bin_spatial()` to compute binned color features and `color_hist()` to compute color histogram features.
+
+In order to test parameters for all three feature classes (`hog`, `binned`, `histogram`), I implemented the  `single_img_features()` function which accepts an image and returns a combined feature vector. The `extract_features()` function takes multiple test images and processes them with the given parameters.
+
+The function `get_classifier()` takes in `car_features` and `notcar_features`, standardizes them using the ` StandardScaler()`, splits the data into training and test data sets, and trains a model using the `LinearSvc()` algorithm. The function returns the trained classifier along with the standard scaler.
+
+I extracted features from car and non-car training images, storing them in the `car_features` and `notcar_features` variables. I ran the extracted features through the `get_classifier()` function with the following parameters:
+
+* HOG Classifier: `YCrCb` color space, 13 orientations, 8 pixels per block, 2 cells per block, using all image channels.
+* Binned Classifier: (32,32) spatial binning dimensions
+* Histogram Classifier: 32 histogram bins
+
+
+I explored several different color spaces in addition to `YCrCb`. I found that `LUV` was very close. I tried training with just one color channel, testing all three individually. I found that using all channels improves test accuracy. I tried several orientations (11, 13), pixes per cell (13, 16), though they did not make a significant difference in the training accuracy.
+
+### Sliding Window Search
+I implemented sliding window search in the `find_cars()` function. The function takes in an image, a region of interest, a classifier, a standard scaler, along with feature extraction parameters. The function returns a list of boxes found on the image. The function improves search performance for HOG features, extracting features once for the entire region of interest for each channel and sub-sampling that array for each sliding window.
+
+I tried multiple scales (0.8, 1, 1.25, 1.5, 1.75, 2) to detect boxes. Examples of test images at different scales:
+
+Scale 1
+![alt text][image3]
+
+Scale 1.5
+![alt text][image4]
+
+
+I ended up searching with two scales (1, 1.5) using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector.  Here are some example images:
+
+![alt text][image5]
+
+![alt text][image6]
+---
+
+### Video Implementation
+
+Here's a [link to my video result](./output_videos/project_video.mp4)
+
+I created the `Boxes` class to keep track of processed video frames in order to combine box sizes over 10 frames to smooth the video. The `process_image()` function has the video processing pipeline. The function searches for boxes using two different scales, combines boxes with the boxes from 10 previous frames, creates a heatmap using all boxes, applies a threshold to eliminate false positives, and generates final boxes from heatmap using the `scipy.ndimage.measurements.label()` function.
+
+Here's an example result showing the heatmap from the test images along with the bounding boxes:
+
+![alt text][image7]
+
+Output of scipy.ndimage.measurements.label() on the heatmap from the last image:
+![alt text][image8]
+
+The resulting bounding boxes are drawn onto the last frame in the series:
+![alt text][image9]
+---
+
+### Discussion
+* I initially ran into problems when using cv2.imread function, which produces images in the `BGR` color space. Despite using the right conversion `BGR2YCrCb`, I was not able to consistently detect the boxes. Switching to the `matplotlib` `mpimg` library addressed the problem.
+* I found that using `HOG` features alone gave me most of the test accuracy
+* I ran into a problem by using too small and too large of scaling factors, which resulted in too many false positives. I attempted suppresing them with a higher threshold, but was not able to eliminate all of them.
+
+The pipeline still detects false positives, specifically cars on the opposite lane. Fine-tuning my region of interest may help, along with adding more labeled images to the training data set.
