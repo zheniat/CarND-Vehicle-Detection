@@ -9,6 +9,8 @@ The goals / steps of this project are the following:
 * Run the pipeline on a video stream and create a heat map of recurring detections frame by frame to reject outliers and follow detected vehicles.
 * Estimate a bounding box for vehicles detected.
 
+Functions referenced in this report are contained in the [jupyter notebook](project.ipynb).
+
 [//]: # (Image References)
 [image1]: ./media/non-car_hog_sample_colorspaces.png
 [image2]: ./media/car_hog_sample_colorspaces.png
@@ -21,7 +23,6 @@ The goals / steps of this project are the following:
 [image9]: ./media/final_image_with_boxes.png
 [video1]: ./output_videos/project_video.mp4
 
-Functions referenced in this report are contained in the [jupyter notebook](project.ipynb).
 ---
 ### Histogram of Oriented Gradients (HOG)
 
@@ -30,20 +31,22 @@ Functions referenced in this report are contained in the [jupyter notebook](proj
 The code extracting HOG features for training images is contained in the `get_hog_features()` function. This function takes in an image, HOG parameters. It returns HOG features and optionally the hog_image. I started by running a sample `non-car` and `car` image through the function with different color space formats to determine which one returns more data.
 
 `non-car`
+
 ![alt text][image1]
 
 `car`
+
 ![alt text][image2]
 
 I implemented functions `bin_spatial()` to compute binned color features and `color_hist()` to compute color histogram features.
 
-In order to test parameters for all three feature classes (`hog`, `binned`, `histogram`), I implemented the  `single_img_features()` function which accepts an image and returns a combined feature vector. The `extract_features()` function takes multiple test images and processes them with the given parameters.
+In order to test parameters for all three feature classes (`hog`, `binned`, `histogram`), I implemented the `single_img_features()` function which accepts an image and returns a combined feature vector. The `extract_features()` function takes multiple test images and processes them using the `single_img_features()` function.
 
 The function `get_classifier()` takes in `car_features` and `notcar_features`, standardizes them using the ` StandardScaler()`, splits the data into training and test data sets, and trains a model using the `LinearSvc()` algorithm. The function returns the trained classifier along with the standard scaler.
 
 I extracted features from car and non-car training images, storing them in the `car_features` and `notcar_features` variables. I ran the extracted features through the `get_classifier()` function with the following parameters:
 
-* HOG Classifier: `YCrCb` color space, 13 orientations, 8 pixels per block, 2 cells per block, using all image channels.
+* HOG Classifier: `YCrCb` color space, 9 orientations, 8 pixels per block, 2 cells per block, using all image channels.
 * Binned Classifier: (32,32) spatial binning dimensions
 * Histogram Classifier: 32 histogram bins
 
@@ -56,9 +59,11 @@ I implemented sliding window search in the `find_cars()` function. The function 
 I tried multiple scales (0.8, 1, 1.25, 1.5, 1.75, 2) to detect boxes. Examples of test images at different scales:
 
 Scale 1
+
 ![alt text][image3]
 
 Scale 1.5
+
 ![alt text][image4]
 
 
@@ -87,7 +92,7 @@ The resulting bounding boxes are drawn onto the last frame in the series:
 ---
 
 ### Discussion
-* I initially ran into problems when using cv2.imread function, which produces images in the `BGR` color space. Despite using the right conversion `BGR2YCrCb`, I was not able to consistently detect the boxes. Switching to the `matplotlib` `mpimg` library addressed the problem.
+* I initially ran into problems when using the `cv2.imread` function, which produces images in the `BGR` color space. Despite using the right conversion `BGR2YCrCb`, I was not able to consistently detect the boxes. Switching to the `matplotlib` `mpimg` library addressed the problem.
 * I found that using `HOG` features alone gave me most of the test accuracy
 * I ran into a problem by using too small and too large of scaling factors, which resulted in too many false positives. I attempted suppresing them with a higher threshold, but was not able to eliminate all of them.
 
